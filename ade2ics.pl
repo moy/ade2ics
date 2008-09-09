@@ -6,8 +6,7 @@
 # Redistribution of this script, is prohibited without the
 # agreement of the author.
 # 
-# BUGS TO REMOVE BEFORE DISTRIBUTION
-# - Weeks loop near # Get planning should update itself. <-- DONE
+# TODO
 # - iCal output should respect standards more carefully
 
 # $Log: edt.pl,v $
