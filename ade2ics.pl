@@ -75,7 +75,7 @@ $| = 1;
 # Base config
 my $default_url = $opts{u} = 'http://edt.enst-bretagne.fr/ade/'; # Don't work with edt.telecom-bretagne.eu !
 $opts{l} = '';
-$opts{p} = '';
+#$opts{p} = ''; # Should be commented if not used
 $opts{t} = 0;
 $opts{d} = 0;
 $opts{s} = 1;
