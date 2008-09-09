@@ -1,4 +1,4 @@
-#!/usr/pkg/bin/perl -w
+#!/usr/bin/env perl -w
 
 # Author: Jean-Edouard BABIN, je.babin in telecom-bretagne.eu
 # Extended by Ronan Keryell, rk in enstb.org
