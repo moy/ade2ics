@@ -9,7 +9,10 @@
 # TODO
 # - iCal output should respect standards more carefully
 
-# $Log: edt.pl,v $
+# History
+# Revision 2.6 2008/09/10 00:19:24 jeb
+# Bug fix ($opts{p}
+# 
 # Revision 2.5 2008/09/09 22:30:48 jeb
 # Password can be read from stdin
 #
@@ -48,9 +51,6 @@
 # Now try to catch all the weeks in the calendar (TODO: to query first the
 # existing weeks or use the all weeks option of EDT?...).
 # Added a time-stamped output file option with -t.
-
-# Revision 1.1 2006/09/19 15:43:28 keryell
-# Initial revision
 
 use strict;
 use warnings;
