@@ -10,6 +10,9 @@
 # - iCal output should respect standards more carefully
 
 # History
+# Revision 2.6 2008/09/19 13:58:12 jeb
+# Handle date with : instead of h
+#
 # Revision 2.6 2008/09/10 00:19:24 jeb
 # Bug fix ($opts{p}
 # 
@@ -289,7 +292,7 @@ sub ics_output {
 		$token = $p->get_tag("td");
 		my $day = $p->get_trimmed_text; # Mardi
 		$token = $p->get_tag("td");
-		my $hour = $p->get_trimmed_text; # 13h30
+		my $hour = $p->get_trimmed_text; # 13h30 | 15:30
 		$token = $p->get_tag("td");
 		my $duration = $p->get_trimmed_text; # 2h50min | 2h | 50min
 
@@ -336,7 +339,7 @@ sub ics_output {
 
 		$date =~ m|(\d+)/(\d+)/(\d+)|;
 		my $ics_day = sprintf("%02d%02d%02d",$3,$2,$1);
-		$hour =~ m|(\d+)h(\d+)|;
+		$hour =~ m|(\d+)[h:](\d+)|;
 		my $ics_hour .= sprintf("%02d%02d00",$1,$2);
 		my $ics_start_date = $ics_day.'T'.$ics_hour;
 	
