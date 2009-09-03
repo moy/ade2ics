@@ -259,6 +259,7 @@ print "BEGIN:VCALENDAR\n";
 print "VERSION:2.0\n";
 print "PRODID:-//Jeb//edt.pl//EN\n";
 print "BEGIN:VTIMEZONE\n";
+print "X-WR-CALNAME:ADE2ics\n";
 #print "TZID:Europe/Paris\n";
 #print "X-WR-TIMEZONE:Europe/Paris\n";
 print "TZID:\"GMT +0100 (Standard) / GMT +0200 (Daylight)\"\n";
@@ -331,7 +332,7 @@ sub ics_output {
 		$token = $p->get_tag("td");
 		$module = $p->get_text('td'); # FIP ELP103 Electronique num?rique : Logique combinatoire
 		$token = $p->get_tag("td");
-		$formation_UV = $p->get_text('td'); # Enseignements INF S3 UV2 MAJ INF Automne Majeure INF UV2
+		$formation_UV = $p->get_trimmed_text; # Enseignements INF S3 UV2 MAJ INF Automne Majeure INF UV2
 		
 		#######################################
 		if(0) { #used for debug
@@ -358,20 +359,40 @@ sub ics_output {
 		$date =~ m|(\d+)/(\d+)/(\d+)|;
 		my $ics_day = sprintf("%02d%02d%02d",$3,$2,$1);
 		$hour =~ m|(\d+)[h:](\d+)|;
-		my $ics_hour .= sprintf("%02d%02d00",$1,$2);
-		my $ics_start_date = $ics_day.'T'.$ics_hour;
-	
+		
+		my $ics_start_hour = $1;
+		my $ics_start_minute = $2;
+		my $ics_start_date = $ics_day.'T'.sprintf("%02d%02d00",$1,$2);
+
+		my $ics_duration_hours;
+		my $ics_duration_minutes;
 		my $ics_stop_date;
+		my $ics_duration;
+		
 		if ($duration =~ m|^(\d+)h(\d+)|) {
-			$ics_stop_date = $ics_day.'T'.sprintf('%06d',($ics_hour+($1*10000)+($2*100))); # Ok this is wrong as we can get minute > 59, but ical understand it, that's ok for now
+			$ics_duration_hours = $1;
+			$ics_duration_minutes = $2;
 		} elsif ($duration =~ m|^(\d+)h|) {
-			$ics_stop_date = $ics_day.'T'.sprintf('%06d',($ics_hour+($1*10000)));
+			$ics_duration_hours = $1;
+			$ics_duration_minutes = 0;
 		} elsif ($duration =~ m|^(\d+)m|) {
-			$ics_stop_date = $ics_day.'T'.sprintf('%06d',($ics_hour+($1*100)));
+			$ics_duration_hours = 0;
+			$ics_duration_minutes = $1;
 		} else {
 			die "Error 14 : date $duration can't be parsed";
 		}
 	
+		my $ics_end_hours = $ics_start_hour+$ics_duration_hours;
+		my $ics_end_minutes = $ics_start_minute+$ics_duration_minutes;
+
+		while ($ics_end_minutes >= 60) {
+			$ics_end_minutes -= 60;
+			$ics_end_hours += 1;
+		}
+	
+		$ics_stop_date = $ics_day.'T'.sprintf('%02d%02d00',$ics_end_hours, $ics_end_minutes);
+		$ics_duration = "PT".sprintf('%02d', $ics_duration_hours)."H".sprintf('%02d', $ics_duration_minutes)."M0S";
+
 		my ($tssec,$tsmin,$tshour,$tsmday,$tsmon,$tsyear,$tswday,$tsyday,$tsisdst) = gmtime();
                 my $dtstamp = sprintf("%02d%02d%02dT%02d%02d%02dZ", $tsyear+1900, $tsmon + 1, $tsmday, $tshour, $tsmin, $tssec);
 
@@ -400,6 +421,10 @@ sub ics_output {
 __END__
 
 History (doesn't follow commit revision)
+
+Revision 2.8 2009/09/03
+Fixed a bug that skiped half of the event.
+Duration is now OK, it no longer have minutes > 59, thanks to Matthieu Moy (Ensimag)
 
 Revision 2.7 2009/09/03
 Allow -s -d -t switch to be negated with -nos --nod --not
