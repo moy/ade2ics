@@ -271,10 +271,10 @@ $p = HTML::TokeParser->new(\$mech->content);
 print "BEGIN:VCALENDAR\n";
 print "VERSION:2.0\n";
 print "PRODID:-//Jeb//edt.pl//EN\n";
-print "BEGIN:VTIMEZONE\n";
 print "X-WR-CALNAME:ADE2ics\n";
 #print "TZID:Europe/Paris\n";
-#print "X-WR-TIMEZONE:Europe/Paris\n";
+print "X-WR-TIMEZONE:Europe/Paris\n";
+print "BEGIN:VTIMEZONE\n";
 print "TZID:\"GMT +0100 (Standard) / GMT +0200 (Daylight)\"\n";
 print "END:VTIMEZONE\n";
 print "METHOD:PUBLISH\n";
@@ -410,8 +410,8 @@ sub ics_output {
                 my $dtstamp = sprintf("%02d%02d%02dT%02d%02d%02dZ", $tsyear+1900, $tsmon + 1, $tsmday, $tshour, $tsmin, $tssec);
 
 		print "BEGIN:VEVENT\n";
-		print "DTSTART:$ics_start_date\n";
-		print "DTEND:$ics_stop_date\n";
+		print "DTSTART;TZID=Europe/Paris:$ics_start_date\n";
+		print "DTEND;TZID=Europe/Paris:$ics_stop_date\n";
 		print "SUMMARY:$course\n";
 		print "DTSTAMP:$dtstamp\n";
 		print "UID:edt-$id-0\n";		
