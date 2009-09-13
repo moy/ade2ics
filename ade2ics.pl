@@ -153,32 +153,48 @@ foreach (split(':', $opts{'c'})) {
 	# The job is to find the latest branchId ID then parse schedule
 }
 
+my $file_number = 0;
+sub debug_url {
+	my $mech = shift;
+	my $d = shift;
+	if ($d) {
+		my $file;
+		my $file_name = sprintf("ade2ics-debug-%02d.html", ++$file_number);
+		open($file, ">$file_name");
+		print $file ++$file_number;
+		print $file "<!--".$mech->uri()."-->\n";
+		print $file $mech->content."\n";
+		close($file);
+	}
+}
+
 my $mech = WWW::Mechanize->new(agent => 'ADEics 0.2', cookie_jar => {});
 
 
 # login in
 $mech->get($opts{'u'}.'standard/index.jsp');
 die "Error 1 : check if base_url work" if (!$mech->success());
-print STDERR $mech->content."\n" if ($opts{'d'});
+
+debug_url($mech, $opts{'d'});
 
 if ($opts{'s'}) {
 	$mech->submit_form(fields => {username => $opts{'l'}, password => $opts{'p'}});
 } else {
 	$mech->submit_form(fields => {login => $opts{'l'}, password => $opts{'p'}});
 }
-print STDERR $mech->content."\n" if ($opts{'d'});
+debug_url($mech, $opts{'d'});
 die "Error 2" if (!$mech->success());
 
 if ($opts{'s'}) {
 	$mech->follow_link( n => 1 );
-	print STDERR $mech->content."\n" if ($opts{'d'});
+	debug_url($mech, $opts{'d'});
 	die "Error 2.1" if (!$mech->success());
 }
 
 # Getting projet list
 $mech->get($opts{'u'}.'standard/projects.jsp');
 die "Error 2.2 : check if ADE url ($opts{'u'}) works" if (!$mech->success());
-print STDERR $mech->content."\n" if ($opts{'d'});
+debug_url($mech, $opts{'d'});
 
 # Choosing projectId
 my $p = HTML::TokeParser->new(\$mech->content);
@@ -194,13 +210,13 @@ die "Error 3 : $tree[0] does not exist" if ($projid == -1);
 
 $mech->submit_form(fields => {projectId => $projid});
 die "Error 4" if (!$mech->success());
-print STDERR $mech->content."\n" if ($opts{'d'});
+debug_url($mech, $opts{'d'});
 
 
 # We need to load tree.jsp to find category name
 $mech->get($opts{'u'}.'standard/gui/tree.jsp');
 die "Error 5" if (!$mech->success());
-print STDERR $mech->content."\n" if ($opts{'d'});
+debug_url($mech, $opts{'d'});
 
 # So, finding it
 $p = HTML::TokeParser->new(\$mech->content);
@@ -219,7 +235,7 @@ die "Error 6 : $tree[1] does not exist" if (!defined($category));
 # We need load the category chosed on command line to find branchID
 $mech->get($opts{'u'}.'standard/gui/tree.jsp?category='.$category.'&expand=false&forceLoad=false&reload=false&scroll=0');
 die "Error 7" if (!$mech->success());
-print STDERR $mech->content."\n" if ($opts{'d'});
+debug_url($mech, $opts{'d'});
 
 
 # We loop until last branchID
@@ -237,7 +253,7 @@ for (2..$#tree) {
 		}
 	}
 	$branchId =~ s/.*\((\d+),\s+.*/$1/;
-	print STDERR $mech->content."\n" if ($opts{'d'});
+	debug_url($mech, $opts{'d'});
 	die "Error 8.$_ : $tree[$_] does not exist" if (!defined($branchId));
 
 	if ($_ == $#tree) {
@@ -247,23 +263,23 @@ for (2..$#tree) {
 	}
 }
 
-print STDERR $mech->content."\n" if ($opts{'d'});
+debug_url($mech, $opts{'d'});
 die "Error 9 : $tree[$#tree] does not exist" if (!defined($branchId));
 
 # We need to choose a week
 $mech->get($opts{'u'}.'custom/modules/plannings/pianoWeeks.jsp?forceLoad=true');
 die "Error 10" if (!$mech->success());
-print $mech->content."\n" if ($opts{'d'});
+debug_url($mech, $opts{'d'});
 
 # then we choose all week
 $mech->get($opts{'u'}.'custom/modules/plannings/pianoWeeks.jsp?searchWeeks=all');
 die "Error 10bis" if (!$mech->success());
-print STDERR $mech->content."\n" if ($opts{'d'});
+debug_url($mech, $opts{'d'});
 
 # Get planning
 $mech->get($opts{'u'}.'custom/modules/plannings/info.jsp');
 die "Error 11" if (!$mech->success());
-print STDERR $mech->content."\n" if ($opts{'d'});
+debug_url($mech, $opts{'d'});
 
 # Parse planning to get event
 $p = HTML::TokeParser->new(\$mech->content);
