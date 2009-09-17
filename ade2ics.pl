@@ -161,7 +161,7 @@ sub debug_url {
 		my $file;
 		my $file_name = sprintf("ade2ics-debug-%02d.html", ++$file_number);
 		open($file, ">$file_name");
-		print $file ++$file_number;
+		print $file $file_number;
 		print $file "<!--".$mech->uri()."-->\n";
 		print $file $mech->content."\n";
 		close($file);
@@ -173,7 +173,7 @@ my $mech = WWW::Mechanize->new(agent => 'ADEics 0.2', cookie_jar => {});
 
 # login in
 $mech->get($opts{'u'}.'standard/index.jsp');
-die "Error 1 : check if base_url work" if (!$mech->success());
+die "Error 1 : failed to load welcome page. check if base_url works." if (!$mech->success());
 
 debug_url($mech, $opts{'d'});
 
@@ -183,7 +183,7 @@ if ($opts{'s'}) {
 	$mech->submit_form(fields => {login => $opts{'l'}, password => $opts{'p'}});
 }
 debug_url($mech, $opts{'d'});
-die "Error 2" if (!$mech->success());
+die "Error 2 : login failed." if (!$mech->success());
 
 if ($opts{'s'}) {
 	$mech->follow_link( n => 1 );
@@ -193,7 +193,7 @@ if ($opts{'s'}) {
 
 # Getting projet list
 $mech->get($opts{'u'}.'standard/projects.jsp');
-die "Error 2.2 : check if ADE url ($opts{'u'}) works" if (!$mech->success());
+die "Error 2.2 : Failet to load projects.jsp. check if ADE url ($opts{'u'}) works." if (!$mech->success());
 debug_url($mech, $opts{'d'});
 
 # Choosing projectId
@@ -206,16 +206,16 @@ while (($projid == -1) && (my $token = $p->get_tag("option"))) {
 	      $projid = $token->[1]{value};
 	}
 }
-die "Error 3 : $tree[0] does not exist" if ($projid == -1);
+die "Error 3 : $tree[0] does not exist. Check argument to -c option." if ($projid == -1);
 
 $mech->submit_form(fields => {projectId => $projid});
-die "Error 4" if (!$mech->success());
+die "Error 4 : can't select $tree[0]." if (!$mech->success());
 debug_url($mech, $opts{'d'});
 
 
 # We need to load tree.jsp to find category name
 $mech->get($opts{'u'}.'standard/gui/tree.jsp');
-die "Error 5" if (!$mech->success());
+die "Error 5 : can't load standard/gui/tree.jsp." if (!$mech->success());
 debug_url($mech, $opts{'d'});
 
 # So, finding it
@@ -229,12 +229,12 @@ while ((!defined($category)) && (my $token = $p->get_tag("a"))) {
 	}
 }
 $category =~ s/.*\('(.*?)'\)$/$1/;
-die "Error 6 : $tree[1] does not exist" if (!defined($category));
+die "Error 6 : $tree[1] does not exist. Check your -c argument." if (!defined($category));
 
 
 # We need load the category chosed on command line to find branchID
 $mech->get($opts{'u'}.'standard/gui/tree.jsp?category='.$category.'&expand=false&forceLoad=false&reload=false&scroll=0');
-die "Error 7" if (!$mech->success());
+die "Error 7 : can't load standard/gui/tree.jsp?category=$category ..." if (!$mech->success());
 debug_url($mech, $opts{'d'});
 
 
@@ -268,17 +268,17 @@ die "Error 9 : $tree[$#tree] does not exist" if (!defined($branchId));
 
 # We need to choose a week
 $mech->get($opts{'u'}.'custom/modules/plannings/pianoWeeks.jsp?forceLoad=true');
-die "Error 10" if (!$mech->success());
+die "Error 10 : can't load custom/modules/plannings/pianoWeeks.jsp?forceLoad=true." if (!$mech->success());
 debug_url($mech, $opts{'d'});
 
 # then we choose all week
 $mech->get($opts{'u'}.'custom/modules/plannings/pianoWeeks.jsp?searchWeeks=all');
-die "Error 10bis" if (!$mech->success());
+die "Error 10bis : can't load custom/modules/plannings/pianoWeeks.jsp?searchWeeks=all" if (!$mech->success());
 debug_url($mech, $opts{'d'});
 
 # Get planning
 $mech->get($opts{'u'}.'custom/modules/plannings/info.jsp');
-die "Error 11" if (!$mech->success());
+die "Error 11 : can't load custom/modules/plannings/info.jsp" if (!$mech->success());
 debug_url($mech, $opts{'d'});
 
 # Parse planning to get event
