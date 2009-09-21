@@ -75,7 +75,7 @@ $opts{e} = $default_school;
 
 if (!defined $ENV{REQUEST_METHOD}) {
 
-	GetOptions(\%opts, 'c=s', 'u=s', 'l=s', 'e=s', 'p:s', 't!', 'd!', 's!');
+	GetOptions(\%opts, 'c=s', 'u=s', 'l=s', 'e=s', 'r=s', 'p:s', 't!', 'd!', 's!');
 
 	$opts{'u'} = $opts{'u'} || $default_config{$opts{'e'}}{'u'};
 	$opts{'l'} = $opts{'l'} || $default_config{$opts{'e'}}{'l'};
@@ -85,8 +85,9 @@ if (!defined $ENV{REQUEST_METHOD}) {
 	$opts{'s'} = $opts{'s'} || $default_config{$opts{'e'}}{'s'};
 
 	if (!defined($opts{'c'})) {
-		print STDERR "Usage: $0 -c Path [-e school_name] [-u base_url] [-l login] [-p [password]] [-t] [-d] [-s]\n";
+		print STDERR "Usage: $0 -c Path [-e school_name] [-u base_url] [-l login] [-p [password]] [-t] [-d] [-s] [-r <numbers>]\n";
 		print STDERR " -c is expecting the path through the page you need to click to get the information you are looking for, encoded in ISO-8859-1 (see examples)\n";
+		print STDERR " -r is a comma-separated list of ressource numbers (find them by passing the mouse over a ressource and look at the status bar in a browser). If -r is given, then only the project name has to be given in -c.";
 		print STDERR " -e is expecting you school name. It loads default value of -u -l -p -t- d- s for your school. Default school is : $default_school. Available school are (case sensitive):\n";
 		print STDERR "\t- $_\n" foreach (keys %default_config);
 		print STDERR " -u is expecting the ADE location to peek into\n";
@@ -99,6 +100,7 @@ if (!defined $ENV{REQUEST_METHOD}) {
 		print STDERR "\nSome examples:\n";
 		print STDERR " $0 -l jebabin -p -c '2007-2008:Etudiants:FIP:FIP 3A 2007-2008:BABIN Jean-Edouard'\n";
 		print STDERR " $0 -e Ensimag -p somepassword -c 'ENSIMAG2009-2010:Enseignants:M:Moy Matthieu'\n";
+		print STDERR " $0 -e Ensimag -p some_password -c 'ENSIMAG2009-2010' -r 1087,1088\n";
 		print STDERR " even more:\n";
 		print STDERR " $0 -s -l jebabin -p -c '2007-2008:Etudiants:FIP:FIP 3A 2007-2008:BABIN Jean-Edouard'\n";
 		print STDERR " $0 -t -s -l keryell -p some_password -c '2007-2008:Enseignants:H à K:KERYELL Ronan'\n";
@@ -212,59 +214,63 @@ $mech->submit_form(fields => {projectId => $projid});
 die "Error 4 : can't select $tree[0]." if (!$mech->success());
 debug_url($mech, $opts{'d'});
 
+if (! $opts{'r'}) {
+	# We need to load tree.jsp to find category name
+	$mech->get($opts{'u'}.'standard/gui/tree.jsp');
+	die "Error 5 : can't load standard/gui/tree.jsp." if (!$mech->success());
+	debug_url($mech, $opts{'d'});
 
-# We need to load tree.jsp to find category name
-$mech->get($opts{'u'}.'standard/gui/tree.jsp');
-die "Error 5 : can't load standard/gui/tree.jsp." if (!$mech->success());
-debug_url($mech, $opts{'d'});
-
-# So, finding it
-$p = HTML::TokeParser->new(\$mech->content);
-$token = $p->get_tag("div");
-
-my $category;
-while ((!defined($category)) && (my $token = $p->get_tag("a"))) {
-      if($p->get_trimmed_text eq $tree[1]) {
-	      $category = $token->[1]{href};
-	}
-}
-$category =~ s/.*\('(.*?)'\)$/$1/;
-die "Error 6 : $tree[1] does not exist. Check your -c argument." if (!defined($category));
-
-
-# We need load the category chosed on command line to find branchID
-$mech->get($opts{'u'}.'standard/gui/tree.jsp?category='.$category.'&expand=false&forceLoad=false&reload=false&scroll=0');
-die "Error 7 : can't load standard/gui/tree.jsp?category=$category ..." if (!$mech->success());
-debug_url($mech, $opts{'d'});
-
-
-# We loop until last branchID
-my $branchId;
-for (2..$#tree) {
-	undef $branchId;
-
-	# find branch
+	# So, finding it
 	$p = HTML::TokeParser->new(\$mech->content);
 	$token = $p->get_tag("div");
 
-	while ((!defined($branchId)) && (my $token = $p->get_tag("a"))) {
-		if($p->get_trimmed_text eq $tree[$_]) {
-		      $branchId = $token->[1]{href};
+	my $category;
+	while ((!defined($category)) && (my $token = $p->get_tag("a"))) {
+		if($p->get_trimmed_text eq $tree[1]) {
+			$category = $token->[1]{href};
 		}
 	}
-	$branchId =~ s/.*\((\d+),\s+.*/$1/;
+	$category =~ s/.*\('(.*?)'\)$/$1/;
+	die "Error 6 : $tree[1] does not exist. Check your -c argument." if (!defined($category));
+
+
+	# We need load the category chosed on command line to find branchID
+	$mech->get($opts{'u'}.'standard/gui/tree.jsp?category='.$category.'&expand=false&forceLoad=false&reload=false&scroll=0');
+	die "Error 7 : can't load standard/gui/tree.jsp?category=$category ..." if (!$mech->success());
 	debug_url($mech, $opts{'d'});
-	die "Error 8.$_ : $tree[$_] does not exist" if (!defined($branchId));
 
-	if ($_ == $#tree) {
-		$mech->get($opts{'u'}.'standard/gui/tree.jsp?selectId='.$branchId.'&reset=true&forceLoad=false&scroll=0');
-	} else {
-		$mech->get($opts{'u'}.'standard/gui/tree.jsp?branchId='.$branchId.'&expand=false&forceLoad=false&reload=false&scroll=0');
+
+	# We loop until last branchID
+	my $branchId;
+	for (2..$#tree) {
+		undef $branchId;
+
+		# find branch
+		$p = HTML::TokeParser->new(\$mech->content);
+		$token = $p->get_tag("div");
+
+		while ((!defined($branchId)) && (my $token = $p->get_tag("a"))) {
+			if($p->get_trimmed_text eq $tree[$_]) {
+				$branchId = $token->[1]{href};
+			}
+		}
+		$branchId =~ s/.*\((\d+),\s+.*/$1/;
+		debug_url($mech, $opts{'d'});
+		die "Error 8.$_ : $tree[$_] does not exist" if (!defined($branchId));
+
+		if ($_ == $#tree) {
+			$mech->get($opts{'u'}.'standard/gui/tree.jsp?selectId='.$branchId.'&reset=true&forceLoad=false&scroll=0');
+		} else {
+			$mech->get($opts{'u'}.'standard/gui/tree.jsp?branchId='.$branchId.'&expand=false&forceLoad=false&reload=false&scroll=0');
+		}
 	}
-}
 
-debug_url($mech, $opts{'d'});
-die "Error 9 : $tree[$#tree] does not exist" if (!defined($branchId));
+	debug_url($mech, $opts{'d'});
+	die "Error 9 : $tree[$#tree] does not exist" if (!defined($branchId));
+} else {
+	$mech->get($opts{'u'}.'custom/modules/plannings/direct_planning.jsp?resources='.$opts{'r'}.'&days=0,1,2,3,4');
+	debug_url($mech, $opts{'d'});
+}
 
 # We need to choose a week
 $mech->get($opts{'u'}.'custom/modules/plannings/pianoWeeks.jsp?forceLoad=true');
